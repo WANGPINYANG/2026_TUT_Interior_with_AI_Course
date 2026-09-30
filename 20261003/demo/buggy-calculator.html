@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo 工具：磁磚材料計算機（埋雷版）</title>
+<style>
+  body { font-family: system-ui, "Microsoft JhengHei", sans-serif; max-width: 40em; margin: 2rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.2em; }
+  label { display: block; margin: .5em 0; }
+  input { width: 8em; padding: .2em; }
+  button { margin: 1em 0; padding: .4em 1.5em; font-size: 1em; }
+  #result { font-size: 1.5em; font-weight: bold; }
+  #check { font-weight: bold; }
+  .hint { color: #666; font-size: .9em; }
+</style>
+</head>
+<body>
+<h1>Demo 工具：磁磚材料計算機</h1>
+<p class="hint">這個工具埋了 3 種 bug。請用「壞值清單」測試它，並寫稽核報告。</p>
+
+<label>牆面面積（m²）：<input id="area" value="20"></label>
+<label>磁磚塗佈率（%）：<input id="cover" value="30"></label>
+<label>損耗率（%）：<input id="waste" value="5"></label>
+<button id="calc">計算</button>
+
+<h2>需要的磁磚數：<span id="result">-</span></h2>
+<p id="check">檢查結果：-</p>
+
+<script>
+document.getElementById('calc').onclick = () => {
+  // 埋雷 1：空白輸入經 parseFloat 會變 NaN，沒有擋
+  const area  = parseFloat(document.getElementById('area').value);
+  const cover = parseFloat(document.getElementById('cover').value);
+  const waste = parseFloat(document.getElementById('waste').value);
+
+  // 埋雷 2：分母沒做邊界檢查
+  // cover = 0 → 除以 0 → Infinity；waste < -100 → 負的用量
+  // （0.25 m² 為單張磁磚面積，demo 假設值）
+  const tiles = area / (0.25 * cover / 100) * (1 + waste / 100);
+
+  document.getElementById('result').textContent = tiles + ' 片';
+
+  // 埋雷 3：檢查只比對 NaN、不比對 Infinity
+  // → 整頁顯示 Infinity 也會報「通過」（假通過）
+  document.getElementById('check').textContent =
+    Number.isNaN(tiles) ? '失敗（NaN）' : '通過';
+};
+</script>
+</body>
+</html>
