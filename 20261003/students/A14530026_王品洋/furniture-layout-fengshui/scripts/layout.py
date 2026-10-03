@@ -48,6 +48,7 @@ MIRROR_TYPES = {"mirror", "dresser"}
 ATTACHED = {"nightstand", "coffee_table"}   # 自動最佳化時依附在床 / 沙發旁
 PERSON_HALF = 25                            # 動線檢查：人通過需要 50cm 寬
 GRID = 5                                    # 動線網格解析度 (cm)
+INFEASIBLE_CAP = 30.0                       # 有家具在房間外時，總分的上限
 MAX_CELLS = 250000                          # 動線網格上限，超過就把網格放大
 
 PENALTY = {"error": 15, "warning": 6, "high": 12, "medium": 6, "low": 2}
@@ -59,9 +60,12 @@ MAX_ROOM = 100000      # cm，超過視為輸入錯誤（1 公里）
 MIN_ROOM = 50          # cm
 
 
+MAX_COORD = 1000000    # cm（10 公里）；座標、尺寸的絕對值上限，避免 1e308 這種輸入
+
+
 def num(v, label, positive=False):
-    """轉成有限的數字；不合法就丟出看得懂的 ValueError"""
-    if isinstance(v, bool) or v is None or isinstance(v, (list, dict)):
+    """轉成有限的數字；不合法就丟出看得懂的 ValueError。字串一律拒絕（"360" 不是數字 360）"""
+    if isinstance(v, bool) or v is None or isinstance(v, (list, dict, str)):
         raise ValueError("{} 必須是數字，目前是 {!r}".format(label, v))
     try:
         x = float(v)
@@ -69,6 +73,8 @@ def num(v, label, positive=False):
         raise ValueError("{} 必須是數字，目前是 {!r}".format(label, v))
     if not math.isfinite(x):
         raise ValueError("{} 不能是 NaN 或無限大".format(label))
+    if abs(x) > MAX_COORD:
+        raise ValueError("{} 的絕對值不能超過 {:g} cm，目前是 {:g}".format(label, MAX_COORD, x))
     if positive and x <= 0:
         raise ValueError("{} 必須大於 0，目前是 {}".format(label, v))
     return x
@@ -181,7 +187,7 @@ def wall_gap(r, direction, room):
 def free_distance(r, direction, obstacles, room, span=None):
     """從 r 的某一側往外量，到最近障礙物或牆的距離"""
     sp = span or side_span(r, direction)
-    best, who = wall_gap(r, direction, room), "牆"
+    best, who = max(wall_gap(r, direction, room), 0.0), "牆"   # 超出房間的家具另有 OUT_OF_ROOM，淨空不出現負數
     for name, o in obstacles:
         osp = (o[0], o[2]) if direction in ("N", "S") else (o[1], o[3])
         if span_overlap(sp, osp) <= 0.01:
@@ -232,6 +238,38 @@ def door_swing(o, room):
             "W": (0, a, s, b), "E": (W - s, a, W, b)}[o["wall"]]
 
 
+def merge_beams(beams, eps=0.01):
+    """把重疊、相接、重複的樑合併成一根（只在聯集仍是矩形時合併），避免同一根樑被切開後重複扣分"""
+    bs = [tuple(b) for b in beams]
+    changed = True
+    while changed:
+        changed = False
+        for i in range(len(bs)):
+            for j in range(i + 1, len(bs)):
+                a, b = bs[i], bs[j]
+                same_y = abs(a[1] - b[1]) < eps and abs(a[3] - b[3]) < eps
+                same_x = abs(a[0] - b[0]) < eps and abs(a[2] - b[2]) < eps
+                touch_x = a[0] <= b[2] + eps and b[0] <= a[2] + eps
+                touch_y = a[1] <= b[3] + eps and b[1] <= a[3] + eps
+                contained = (a[0] <= b[0] + eps and a[1] <= b[1] + eps and a[2] >= b[2] - eps and a[3] >= b[3] - eps)
+                contained2 = (b[0] <= a[0] + eps and b[1] <= a[1] + eps and b[2] >= a[2] - eps and b[3] >= a[3] - eps)
+                if contained:
+                    new = a
+                elif contained2:
+                    new = b
+                elif (same_y and touch_x) or (same_x and touch_y):
+                    new = (min(a[0], b[0]), min(a[1], b[1]), max(a[2], b[2]), max(a[3], b[3]))
+                else:
+                    continue
+                bs[i] = new
+                del bs[j]
+                changed = True
+                break
+            if changed:
+                break
+    return bs
+
+
 def load_layout(data):
     room, W, D = room_size(data)
     items = [make_item(raw, i) for i, raw in enumerate(as_list(data, "furniture"))]
@@ -249,13 +287,21 @@ def load_layout(data):
         o = dict(o)
         o["offset"] = num(need(o, "offset", label), label + ".offset")
         o["width"] = num(need(o, "width", label), label + ".width", True)
+        wall_len = W if o["wall"] in ("N", "S") else D
+        if o["offset"] < 0 or o["offset"] + o["width"] > wall_len + 0.01:
+            raise ValueError("{} 超出{}牆的長度（牆長 {:g}cm，offset {:g} + width {:g} = {:g}）".format(
+                label, WALL_ZH[o["wall"]], wall_len, o["offset"], o["width"], o["offset"] + o["width"]))
         openings.append(o)
     beams = []
     for k, b in enumerate(as_list(data, "beams")):
         label = "beams[{}]".format(k)
         x, y = num(need(b, "x", label), label + ".x"), num(need(b, "y", label), label + ".y")
         w, d = num(need(b, "w", label), label + ".w", True), num(need(b, "d", label), label + ".d", True)
+        if x + w <= 0 or y + d <= 0 or x >= W or y >= D:
+            raise ValueError("{} 完全在房間外（樑的範圍 x {:g}~{:g}、y {:g}~{:g}，房間 {:g}×{:g}）".format(
+                label, x, x + w, y, y + d, W, D))
         beams.append((x, y, x + w, y + d))
+    beams = merge_beams(beams)
     return {"room": (W, D), "name": str(room.get("name", "房間")), "items": items,
             "openings": openings, "beams": beams}
 
@@ -296,6 +342,8 @@ def check_ergonomics(L):
 
     for it in items:
         r = rects[it["id"]]
+        if r[0] < -0.01 or r[1] < -0.01 or r[2] > W + 0.01 or r[3] > D + 0.01:
+            continue   # 已報 OUT_OF_ROOM；量淨空沒有意義，也會出現負數
         others = [(o["name"], rects[o["id"]]) for o in items if o is not it]
         if it["type"] in BEDS:
             head = OPP[it["facing"]]
@@ -393,25 +441,21 @@ def check_paths(L):
         return []
     seen = [[False] * ny for _ in range(nx)]
     q = deque()
+    layer = max(30.0, 2.0 * grid)       # 門口內側第一層：離牆 R ~ R+layer 之間
     for dr in doors:
-        cx, cy = opening_center(dr, L["room"])
-        vx, vy = DIRS[OPP[dr["wall"]]]
-        si, sj = cell((cx + vx * 40, cy + vy * 40))
-        # 起點被擋住時，往附近找空格
-        for rad in range(0, max(8, int(80 // grid))):
-            found = None
-            for di in range(-rad, rad + 1):
-                for dj in range(-rad, rad + 1):
-                    a, b = si + di, sj + dj
-                    if 0 <= a < nx and 0 <= b < ny and not blocked[a][b]:
-                        found = (a, b)
-                        break
-                if found:
-                    break
-            if found:
-                seen[found[0]][found[1]] = True
-                q.append(found)
-                break
+        a0, b0 = opening_span(dr)
+        for i in range(nx):
+            cx = i * grid + grid / 2.0
+            for j in range(ny):
+                if blocked[i][j] or seen[i][j]:
+                    continue
+                cy = j * grid + grid / 2.0
+                along, inward = {"N": (cx, cy), "S": (cx, D - cy), "W": (cy, cx), "E": (cy, W - cx)}[dr["wall"]]
+                # 只收門寬範圍內、離牆 R ~ R+layer 的空格；門口被家具封死時一格都收不到，
+                # 不會「跳」到家具後面去找空位（舊版會，所以整排家具把門封死時漏報）
+                if a0 - grid <= along <= b0 + grid and R <= inward <= R + layer:
+                    seen[i][j] = True
+                    q.append((i, j))
     while q:
         i, j = q.popleft()
         for di, dj in ((1, 0), (-1, 0), (0, 1), (0, -1)):
@@ -441,6 +485,34 @@ def check_paths(L):
                              "從房門走不到 {} 的使用區（通道小於 50cm）".format(it["name"]),
                              "整理出一條 50cm 以上、從門口到該家具前方的走道", center(zones[0])))
     return out
+
+
+def sight_blocked(mirror, mr, bed, br, items):
+    """鏡子與床之間，有沒有高櫃把視線完全擋住（擋住鏡面朝向的那段寬度）"""
+    f = mirror["facing"]
+    horiz = f in ("N", "S")                      # 鏡面朝南北：沿 x 方向比寬度
+    m_lo, m_hi = (mr[0], mr[2]) if horiz else (mr[1], mr[3])
+    b_lo, b_hi = (br[0], br[2]) if horiz else (br[1], br[3])
+    lo, hi = max(m_lo, b_lo), min(m_hi, b_hi)    # 鏡子看得到床的那一段
+    if hi - lo <= 0.01:
+        return False
+    for o in items:
+        if o is mirror or o is bed or not o["tall"] or o["type"] == "mirror":
+            continue
+        orc = rect(o)
+        o_lo, o_hi = (orc[0], orc[2]) if horiz else (orc[1], orc[3])
+        if o_lo > lo + 0.01 or o_hi < hi - 0.01:
+            continue                             # 沒有完全蓋住那一段
+        # 擋在鏡子與床之間（沿鏡面朝向的方向）
+        if f == "N" and orc[3] <= mr[1] + 0.01 and orc[1] >= br[3] - 0.01:
+            return True
+        if f == "S" and orc[1] >= mr[3] - 0.01 and orc[3] <= br[1] + 0.01:
+            return True
+        if f == "W" and orc[2] <= mr[0] + 0.01 and orc[0] >= br[2] - 0.01:
+            return True
+        if f == "E" and orc[0] >= mr[2] - 0.01 and orc[2] <= br[0] + 0.01:
+            return True
+    return False
 
 
 def check_fengshui(L):
@@ -491,7 +563,7 @@ def check_fengshui(L):
                 continue
             mr = rect(m)
             sight = zone(mr, m["facing"], max(W, D))
-            if overlap(sight, r):
+            if overlap(sight, r) and not sight_blocked(m, mr, bed, r, items):
                 out.append(issue("風水", "high", "MIRROR_FACES_BED", "{}的鏡面正對床".format(m["name"]),
                                  "鏡子轉向避開床，或改放衣櫃門內側", center(mr)))
 
@@ -554,7 +626,13 @@ def evaluate(L, with_path=True):
     issues += check_fengshui(L)
     ergo = max(0, 100 - sum(PENALTY[i["level"]] for i in issues if i["category"] == "人體工學"))
     fs = max(0, 100 - sum(PENALTY[i["level"]] for i in issues if i["category"] == "風水"))
-    return {"score": round(ergo * 0.6 + fs * 0.4, 1), "ergonomics": ergo, "fengshui": fs, "issues": issues}
+    score = round(ergo * 0.6 + fs * 0.4, 1)
+    feasible = not any(i["code"] == "OUT_OF_ROOM" for i in issues)
+    if not feasible:
+        # 有家具在房間外＝配置不可行。風水規則在家具移出房間後反而不觸發，會讓總分更高，
+        # 所以不可行的配置總分封頂，不能和可行的方案比較
+        score = min(score, INFEASIBLE_CAP)
+    return {"score": score, "ergonomics": ergo, "fengshui": fs, "feasible": feasible, "issues": issues}
 
 
 # ---------------------------------------------------------------- 最佳化
@@ -597,6 +675,7 @@ def build(spec, genome):
     anchors = [s for s in spec["_expanded"] if s["type"] not in ATTACHED]
     for s, (wall, pos) in zip(anchors, genome):
         raw = place_on_wall(s["type"], wall, pos, room, s["size"])
+        raw.update(s.get("extra", {}))
         r = rect(make_item(raw))
         if r[0] < 0 or r[1] < 0 or r[2] > room[0] or r[3] > room[1]:
             return None
@@ -610,6 +689,7 @@ def build(spec, genome):
         if not hosts:
             continue
         for cand in attach(s["type"], hosts[0], room, s["size"]):
+            cand.update(s.get("extra", {}))
             r = rect(make_item(cand))
             if r[0] >= 0 and r[1] >= 0 and r[2] <= room[0] and r[3] <= room[1] and not any(overlap(r, p) for p in placed):
                 if sum(1 for x in raws if x["type"] == s["type"]) < s["_limit"]:
@@ -645,17 +725,19 @@ def optimize(spec, top=3, seed=None, iters=3000):
             raise ValueError("未知的家具類型：{}".format(t))
         size = (num(s.get("width", CATALOG[t][1]), "items[{}].width".format(k), True),
                 num(s.get("depth", CATALOG[t][2]), "items[{}].depth".format(k), True))
-        n = int(num(s.get("count", 1), "items[{}].count".format(k)))
-        if n < 0:
-            raise ValueError("items[{}].count 不能是負數".format(k))
+        nraw = num(s.get("count", 1), "items[{}].count".format(k))
+        if nraw != int(nraw) or nraw < 0 or nraw > 50:
+            raise ValueError("items[{}].count 必須是 0～50 的整數，目前是 {:g}".format(k, nraw))
+        n = int(nraw)
+        extra = {key: s[key] for key in ("mirror", "tall", "clearance", "name") if key in s}
         walls = s.get("walls")
         if walls is not None and (not isinstance(walls, list) or any(w not in DIRS for w in walls)):
             raise ValueError("items[{}].walls 必須是 N/S/E/W 的清單".format(k))
         if t in ATTACHED:
-            expanded.append({"type": t, "size": size, "_limit": n})
+            expanded.append({"type": t, "size": size, "_limit": n, "extra": extra})
         else:
             for _ in range(n):
-                expanded.append({"type": t, "size": size, "walls": s.get("walls")})
+                expanded.append({"type": t, "size": size, "walls": s.get("walls"), "extra": extra})
     spec = dict(spec)
     spec["_expanded"] = expanded
     anchors = [s for s in expanded if s["type"] not in ATTACHED]
@@ -850,6 +932,8 @@ def print_report(L, res, title):
         print("  {:<6} 位置({:.0f},{:.0f}) 尺寸 {:.0f}×{:.0f} 正面朝{}".format(
             it["name"], it["x"], it["y"], it["w"], it["d"], WALL_ZH[it["facing"]]))
     print("-" * 50)
+    if res.get("feasible") is False:
+        print("注意：有家具在房間外，這個配置不可行，總分已封頂為 {:g}，不能與可行方案比較".format(INFEASIBLE_CAP))
     for note in res.get("notes", []):
         print("備註：{}".format(note))
     if not res["issues"]:
@@ -884,6 +968,9 @@ def main():
             print("{:<14}{:<8}{:>6}{:>6}{:>8}".format(t, v[0], v[1], v[2], v[3]))
         return
 
+    for label, p in (("--svg", getattr(a, "svg", None)), ("--out-dir", getattr(a, "out_dir", None))):
+        if p and ".." in p.replace("\\", "/").split("/"):
+            sys.exit("輸入有誤：{} 的路徑不能含 ..（{}），避免寫到指定資料夾之外".format(label, p))
     try:
         with open(a.input, encoding="utf-8-sig") as fh:   # utf-8-sig：相容記事本存的 BOM
             data = json.load(fh)
