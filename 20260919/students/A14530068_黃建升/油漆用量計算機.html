@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>油漆用量計算機</title>
+<style>
+  :root { --line:#ddd; --ink:#222; --sub:#666; --ok:#1a7f4b; --bad:#b3261e;
+          --warn:#8a5d00; --bg:#faf9f7; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--ink);
+         font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif; line-height:1.7; }
+  main { max-width:560px; margin:0 auto; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p.lead { margin:0 0 20px; color:var(--sub); font-size:14px; }
+  section { background:#fff; border:1px solid var(--line); border-radius:8px;
+            padding:14px 16px; margin-bottom:14px; }
+  h2 { font-size:15px; margin:0 0 10px; }
+  label { display:block; margin-bottom:10px; font-size:14px; }
+  label span { display:block; color:var(--sub); font-size:12px; }
+  input { width:100%; padding:10px; font-size:16px; border:1px solid var(--line);
+          border-radius:6px; margin-top:4px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  td { padding:5px 0; border-bottom:1px solid var(--line); }
+  td:last-child { text-align:right; font-variant-numeric:tabular-nums; }
+  .result { font-size:28px; font-weight:500; margin:4px 0; }
+  .sub-result { font-size:14px; color:var(--sub); }
+  .note { font-size:12px; color:var(--sub); }
+  .test { font-size:13px; margin:4px 0; }
+  .pass { color:var(--ok); } .fail { color:var(--bad); font-weight:500; }
+  input.bad { border-color:var(--bad); background:#fdf5f5; }
+  .err { display:none; color:var(--bad); font-size:12px; margin:4px 0 0; }
+  .err.on { display:block; }
+  .err.warn { color:var(--warn); }
+  .result.none { color:var(--sub); font-weight:400; }
+  .sub-result.bad { color:var(--bad); }
+  .sub-result.warn { color:var(--warn); }
+  .欄 { display:flex; gap:8px; align-items:stretch; }
+  .欄 input { flex:1; min-width:0; }
+  .欄 select { margin-top:4px; padding:10px 8px; font-size:16px;
+               border:1px solid var(--line); border-radius:6px; background:#fff; }
+</style>
+</head>
+<body>
+<main>
+  <h1>油漆用量計算機</h1>
+  <p class="lead">輸入空間坪數與淨高，估算乳膠漆需要幾加侖。南應室設 115-1 第一堂產出。</p>
+
+  <section>
+    <h2>現場量到的數字</h2>
+    <label>地坪（坪）<span>要粉刷的那個空間的地板面積</span>
+      <div class="欄"> <input id="ping" type="number" value="10" step="0.5" min="0">
+        <select id="u_ping"><option value="坪" selected>坪</option><option value="m2">m2</option><option value="才">才</option></select>
+      </div>
+      <p class="err" id="err_ping"></p></label>
+    <label>牆面淨高（公尺）<span>地板到天花板，不是樓層高</span>
+      <div class="欄"> <input id="wallH" type="number" value="2.8" step="0.1" min="0">
+        <select id="u_wallH"><option value="m" selected>m</option><option value="cm">cm</option><option value="台尺">台尺</option></select>
+      </div>
+      <p class="err" id="err_wallH"></p></label>
+    <label>牆面周長（公尺）<span>四面牆長度相加。填 0 則由坪數推估，見下方假設</span>
+      <div class="欄"> <input id="perim" type="number" value="0" step="0.1" min="0">
+        <select id="u_perim"><option value="m" selected>m</option><option value="cm">cm</option><option value="台尺">台尺</option><option value="丈">丈</option></select>
+      </div>
+      <p class="err" id="err_perim"></p></label>
+    <label>門窗開口面積（m²）<span>門、窗、櫃體等不粉刷的面積合計</span>
+      <div class="欄"> <input id="openArea" type="number" value="6" step="0.5" min="0">
+        <select id="u_openArea"><option value="m2" selected>m2</option><option value="cm2">cm2</option><option value="才">才</option><option value="坪">坪</option></select>
+      </div>
+      <p class="err" id="err_openArea"></p></label>
+  </section>
+
+  <section>
+    <h2>假設參數（可改）</h2>
+    <label>每公升塗佈面積（m²／道）<span>⚠ 預設 9。實際看漆罐標示，常見 8–12</span>
+      <input id="rate" type="number" value="9" step="0.5" min="0.1">
+      <p class="err" id="err_rate"></p></label>
+    <label>塗刷道數<span>面漆兩道為常規；深色蓋淺色可能要 3 道</span>
+      <input id="coats" type="number" value="2" step="1" min="1">
+      <p class="err" id="err_coats"></p></label>
+    <label>損耗率（%）<span>⚠ 預設 10。含刷具吸收、修補、調色備量</span>
+      <input id="loss" type="number" value="10" step="1" min="0">
+      <p class="err" id="err_loss"></p></label>
+  </section>
+
+  <section>
+    <h2>計算過程</h2>
+    <table id="steps"></table>
+    <p class="note" id="assume"></p>
+  </section>
+
+  <section>
+    <h2>結果</h2>
+    <div class="result" id="out">—</div>
+    <div class="sub-result" id="out2">—</div>
+    <p class="note">此為估算值，不是下單量。深色跳色、批土重刷、特殊底材都會改變用量，下單前請以現場複丈與漆廠標示確認。</p>
+  </section>
+
+  <section>
+    <h2>引擎自我測試</h2>
+    <p class="note">固定案例，開頁時跑一次，<strong>與你目前輸入的數字無關</strong>。
+      上面出現紅字是你的輸入要改，這裡是綠的代表計算引擎本身沒壞，兩件事不衝突。</p>
+    <p class="test" id="t0">—</p>
+    <p class="test" id="t1">—</p>
+    <p class="test" id="tRender">—</p>
+    <p class="note">這裡顯示失敗代表公式或設定被改壞了，
+      先重新手算公式，不要直接改預期值。</p>
+  </section>
+</main>
+
+<script>
+/* 計算引擎：所有計算機共用這一份。Node 與瀏覽器都能跑。
+   新增計算類型時只改這裡，不要在個別 HTML 裡另外寫公式。
+   契約：計算(名稱, 輸入物件) → { 過程:[{標籤,算式}], 值:{數字...}, 註記:字串, 錯誤:[字串] }
+   錯誤陣列不是空的時候，值與過程一律是空的——不要拿沒通過驗證的數字去顯示。 */
+'use strict';
+
+/* 舊的換算常數，公式內部直接乘除時用（坪→m²、碼、加侖）。保留以免改動既有公式。 */
+var 換算 = {
+  坪: 3.305785,
+  台尺: 30.3,
+  台寸: 3.03,
+  才: 0.091809,
+  碼: 91.44,
+  英吋: 2.54,
+  加侖: 3.785
+};
+
+/* ── 單位表：以每個維度的基準單位為 1 ──
+   單位換算寫成程式而不是文件裡的表格，才驗得到、才不會抄錯。
+   新增單位只改這裡，單位.test.js 會自動把它納入往返測試。 */
+/* 台尺用精確定義 10/33 公尺，不用慣用的四捨五入值 0.303。
+   理由：坪的定義是 6 台尺見方。寫 0.303 的話 (6×0.303)² = 3.305124，
+   跟坪的 400/121 = 3.305785 對不起來，差 0.02%——單位表自己跟自己矛盾。
+   2026-10-03 單位測試抓到的。實務上講「一台尺 30.3 公分」沒問題，
+   那是口語的四捨五入；程式裡要用精確值，否則換算鏈越長誤差越大。 */
+var 台尺m = 10 / 33;          /* 精確定義。慣用說法是 30.3 公分 */
+var 台寸m = 台尺m / 10;
+var 台分m = 台尺m / 100;
+
+var 單位表 = {
+  長度: {
+    m: 1, cm: 0.01, mm: 0.001,
+    台分: 台分m, 台寸: 台寸m, 台尺: 台尺m, 丈: 台尺m * 10,
+    英吋: 0.0254, 英尺: 0.3048, 碼: 0.9144
+  },
+  面積: {
+    m2: 1, cm2: 0.0001,
+    /* 才由台尺推導、坪再由才推導（1 坪 = 36 才），關係才會精確。
+       兩者各自寫死成小數的話，坪 ÷ 才 會得到 35.9999997 這種值。 */
+    才: 台尺m * 台尺m,          /* 面積才：玻璃、鋁窗、窗簾、板材計價用 */
+    坪: 36 * 台尺m * 台尺m      /* = 6 台尺見方 = 36 才 = 400/121 m² */
+  },
+  體積: {
+    L: 1, m3: 1000, 加侖: 3.785,
+    材積才: 台寸m * 台寸m * (台尺m * 10) * 1000   /* 1 台寸 × 1 台寸 × 10 台尺，換成公升 */
+  }
+};
+
+function 找維度(單位) {
+  var 名 = Object.keys(單位表);
+  for (var i = 0; i < 名.length; i++) {
+    if (Object.prototype.hasOwnProperty.call(單位表[名[i]], 單位)) { return 名[i]; }
+  }
+  return null;
+}
+
+/* 換算到(3, 'm', 'cm') === 300。單位不存在或跨維度一律拋錯——那是寫程式的人錯了，
+   不是使用者輸入錯，不該默默回傳 NaN 讓它流到畫面上。 */
+function 換算到(值, 從, 到) {
+  var a = 找維度(從);
+  var b = 找維度(到);
+  if (!a) { throw new Error('不認得的單位：' + 從); }
+  if (!b) { throw new Error('不認得的單位：' + 到); }
+  if (a !== b) { throw new Error('不能跨維度換算：' + 從 + '（' + a + '）→ ' + 到 + '（' + b + '）'); }
+  if (typeof 值 !== 'number' || !isFinite(值)) { throw new Error('換算的值必須是有限數字'); }
+  return 值 * 單位表[a][從] / 單位表[a][到];
+}
+
+/* ── 常見誤填：欄位要的單位 → 可能被填成哪個單位的數字 ──
+   倍率是「拿來乘上使用者輸入值」之後會落回合理範圍的係數。
+   例：欄位要 cm、使用者填 3（其實是 3 公尺），3 × 100 = 300 cm 落回合理範圍。 */
+var 常見誤填 = {
+  cm: [{ 倍: 100, 來源: '公尺' }, { 倍: 0.1, 來源: '公釐' }],
+  m: [{ 倍: 0.01, 來源: '公分' }, { 倍: 0.001, 來源: '公釐' }],
+  mm: [{ 倍: 10, 來源: '公分' }, { 倍: 1000, 來源: '公尺' }],
+  坪: [{ 倍: 0.3025, 來源: '平方公尺' }]
+};
+
+var 插座建議表 = {
+  客廳: [6, 8], 主臥: [4, 6], 次臥: [4, 4],
+  廚房: [5, 7], 衛浴: [1, 2], 書房: [4, 6]
+};
+
+function n2(v) { return (Math.round(v * 100) / 100).toFixed(2); }
+
+/* ── 輸入驗證規則 ──
+   2026-09-19 第三方稽核抓到：沒有驗證時塗佈率填 0 會算出 Infinity 加侖，
+   損耗率填負數會算出負的用量，坪數填負數會算出 NaN。除數與比例一律要驗。 */
+/* 單位與合理範圍。
+   這個工具混用公尺、公分、公釐、坪，單位填錯是最容易發生也最難發現的錯——
+   數字看起來正常，只是差 100 倍。所以單位寫成欄位的屬性讓程式檢查，
+   而不是只寫在標籤文字裡讓人自己小心。
+   合理範圍只觸發提醒不會擋住，所以寬鬆一點沒關係，覺得不合實務就改。 */
+var 規則 = {
+  油漆: {
+    ping: { 最小: 0, 名: '地坪', 單位: '坪', 合理: [0.5, 500],
+            零提醒: '地坪為 0，算得出來但沒有意義' },
+    wallH: { 大於: 0, 名: '牆面淨高', 單位: 'm', 合理: [1.8, 6] },
+    perim: { 最小: 0, 名: '牆面周長', 單位: 'm', 合理: [2, 200] },
+    openArea: { 最小: 0, 名: '門窗開口面積', 單位: 'm2', 合理: [0.1, 100] },
+    rate: { 大於: 0, 名: '每公升塗佈面積', 合理: [1, 30] },
+    coats: { 最小: 1, 整數: true, 名: '塗刷道數', 合理: [1, 10] },
+    loss: { 最小: 0, 名: '損耗率', 合理: [0, 100],
+            零提醒: '損耗率為 0，沒有留任何備量' }
+  },
+  窗簾: {
+    窗寬: { 大於: 0, 名: '窗寬', 單位: 'cm', 合理: [30, 1000] },
+    窗高: { 大於: 0, 名: '窗高', 單位: 'cm', 合理: [30, 400] },
+    倍數: { 大於: 0, 名: '打摺倍數', 合理: [1, 4] },
+    幅寬: { 大於: 0, 名: '幅寬', 單位: 'cm', 合理: [90, 320] },
+    兩側收邊: { 最小: 0, 名: '兩側收邊', 單位: 'cm', 合理: [0, 50] },
+    上下摺邊: { 最小: 0, 名: '上下摺邊', 單位: 'cm', 合理: [0, 100] }
+  },
+  磁磚: {
+    長: { 大於: 0, 名: '長', 單位: 'm', 合理: [0.3, 100] },
+    寬: { 大於: 0, 名: '寬', 單位: 'm', 合理: [0.3, 100] },
+    扣除: { 最小: 0, 名: '扣除面積', 單位: 'm2', 合理: [0, 1000] },
+    磚長: { 大於: 0, 名: '磚長', 單位: 'cm', 合理: [5, 300] },
+    磚寬: { 大於: 0, 名: '磚寬', 單位: 'cm', 合理: [5, 300] },
+    填縫: { 最小: 0, 名: '填縫寬度', 單位: 'mm', 合理: [0, 30] },
+    損耗: { 最小: 0, 名: '損耗率', 合理: [0, 100],
+            零提醒: '損耗率為 0，沒有留任何備量' },
+    每箱片數: { 最小: 1, 整數: true, 名: '每箱片數', 合理: [1, 200] }
+  }
+};
+
+/* 值落在合理範圍外時，試試看是不是用了別的單位的數字。
+   例：窗寬欄位要公分，使用者填 3（心裡想的是 3 公尺），
+   3 × 100 = 300 落回合理範圍 → 幾乎可以確定是單位填錯。 */
+function 單位疑慮(d, v) {
+  if (!d.合理 || v === 0) { return null; }
+  if (v >= d.合理[0] && v <= d.合理[1]) { return null; }
+
+  var 候選 = (常見誤填[d.單位] || []);
+  for (var i = 0; i < 候選.length; i++) {
+    var 換 = v * 候選[i].倍;
+    if (換 >= d.合理[0] && 換 <= d.合理[1]) {
+      return d.名 + ' ' + v + ' ' + (d.單位 || '') +
+             ' 超出常見範圍；若這是' + 候選[i].來源 + '的數字，應填 ' +
+             (Math.round(換 * 1000) / 1000) + ' ' + (d.單位 || '');
+    }
+  }
+  return d.名 + ' ' + v + ' ' + (d.單位 || '') + ' 超出常見範圍（' +
+         d.合理[0] + '～' + d.合理[1] + '），請確認沒有填錯';
+}
+
+/* 錯誤物件一律是 { 欄位, 等級, 訊息 }。
+   帶欄位名才能在畫面上標到出錯的那一格——只給訊息字串的話，
+   使用者要自己從七個輸入欄猜是哪一個，手機上尤其痛苦。
+   等級：錯誤＝算不出來或結果無意義，擋住；提醒＝算得出來但可疑，照常顯示；
+         致命＝工具本身壞了，不要假裝還能用。 */
+function 錯(欄位, 訊息) { return { 欄位: 欄位, 等級: '錯誤', 訊息: 訊息 }; }
+function 提(欄位, 訊息) { return { 欄位: 欄位, 等級: '提醒', 訊息: 訊息 }; }
+
+function 驗證(名稱, i) {
+  var 出 = [];
+  var r = 規則[名稱] || {};
+  Object.keys(r).forEach(function (k) {
+    var v = i[k];
+    var d = r[k];
+    if (typeof v !== 'number' || !isFinite(v)) {
+      出.push(錯(k, d.名 + '要填數字'));
+      return;
+    }
+    if (typeof d.大於 === 'number' && !(v > d.大於)) {
+      出.push(錯(k, d.名 + '必須大於 ' + d.大於));
+    }
+    if (typeof d.最小 === 'number' && v < d.最小) {
+      出.push(錯(k, d.名 + '不能小於 ' + d.最小));
+    }
+    if (typeof d.最大 === 'number' && v > d.最大) {
+      出.push(錯(k, d.名 + '不能大於 ' + d.最大));
+    }
+    if (d.整數 && Math.floor(v) !== v) {
+      出.push(錯(k, d.名 + '必須是整數'));
+    }
+    if (d.零提醒 && v === 0) {
+      出.push(提(k, d.零提醒));
+    }
+    /* 已經有錯誤的欄位就不要再疊單位提醒，訊息會互相打架 */
+    var 已有錯 = 出.some(function (e) { return e.欄位 === k && e.等級 === '錯誤'; });
+    if (!已有錯) {
+      var 疑 = 單位疑慮(d, v);
+      if (疑) { 出.push(提(k, 疑)); }
+    }
+  });
+  return 出;
+}
+
+var 公式 = {
+  油漆: {
+    說明: '乳膠漆用量，輸出建議購買加侖數',
+    計算: function (i) {
+      var 地坪m2 = i.ping * 換算.坪;
+      var 由坪數推估 = !(i.perim > 0);
+      var 周長 = 由坪數推估 ? Math.sqrt(地坪m2) * 4 : i.perim;
+      var 牆面積 = 周長 * i.wallH - i.openArea;
+      if (牆面積 < 0) { 牆面積 = 0; }
+      var 塗佈需求 = 牆面積 * i.coats;
+      var 公升 = 塗佈需求 / i.rate * (1 + i.loss / 100);
+      var 加侖數 = Math.ceil(公升 / 換算.加侖);
+
+      var 過程 = [];
+      if (由坪數推估) {
+        過程.push({ 標籤: '地坪換算', 算式: i.ping + ' 坪 × 3.3058 = ' + n2(地坪m2) + ' m²' });
+        過程.push({ 標籤: '推估周長', 算式: '√' + n2(地坪m2) + ' × 4 = ' + n2(周長) + ' m' });
+      } else {
+        過程.push({ 標籤: '牆面周長（實測）', 算式: n2(周長) + ' m' });
+      }
+      過程.push({ 標籤: '牆面積', 算式: n2(周長) + ' × ' + i.wallH + ' − ' + i.openArea + ' = ' + n2(牆面積) + ' m²' });
+      過程.push({ 標籤: '塗佈需求（' + i.coats + ' 道）', 算式: n2(塗佈需求) + ' m²' });
+      過程.push({ 標籤: '需求量（含損耗 ' + i.loss + '%）', 算式: n2(公升) + ' L' });
+
+      return {
+        過程: 過程,
+        值: { 地坪m2: 地坪m2, 周長: 周長, 牆面積: 牆面積, 塗佈需求: 塗佈需求, 公升: 公升, 加侖數: 加侖數 },
+        註記: 由坪數推估
+          ? '假設：房間為正方形。長寬相差大的空間會低估，建議實測周長填入。'
+          : '使用實測周長，未套用正方形假設。'
+      };
+    }
+  },
+
+  窗簾: {
+    說明: '直式用布的窗簾布量，輸出建議下單碼數',
+    計算: function (i) {
+      var 布寬需求 = i.窗寬 * i.倍數 + i.兩側收邊;
+      var 幅數 = Math.ceil(布寬需求 / i.幅寬);
+      var 單幅長度 = i.窗高 + i.上下摺邊;
+      var 總碼數 = 幅數 * 單幅長度 / 換算.碼;
+      var 建議碼數 = Math.ceil(總碼數);
+
+      return {
+        過程: [
+          { 標籤: '布寬需求', 算式: i.窗寬 + ' × ' + i.倍數 + ' + ' + i.兩側收邊 + ' = ' + n2(布寬需求) + ' cm' },
+          { 標籤: '用布幅數', 算式: '進位(' + n2(布寬需求) + ' ÷ ' + i.幅寬 + ') = ' + 幅數 + ' 幅' },
+          { 標籤: '單幅長度', 算式: i.窗高 + ' + ' + i.上下摺邊 + ' = ' + 單幅長度 + ' cm' },
+          { 標籤: '總長度', 算式: 幅數 + ' × ' + 單幅長度 + ' ÷ 91.44 = ' + n2(總碼數) + ' 碼' }
+        ],
+        值: { 布寬需求: 布寬需求, 幅數: 幅數, 單幅長度: 單幅長度, 總碼數: 總碼數, 建議碼數: 建議碼數 },
+        註記: '直式用布（布幅垂直）。素色布橫用是另一套算法，本公式不適用；對花布需另加花距。'
+      };
+    }
+  },
+
+  磁磚: {
+    說明: '磁磚片數與箱數',
+    計算: function (i) {
+      var 鋪貼面積 = i.長 * i.寬 - i.扣除;
+      if (鋪貼面積 < 0) { 鋪貼面積 = 0; }
+      var 單片面積 = ((i.磚長 + i.填縫 / 10) / 100) * ((i.磚寬 + i.填縫 / 10) / 100);
+      var 片數 = Math.ceil(鋪貼面積 / 單片面積 * (1 + i.損耗 / 100));
+      var 箱數 = Math.ceil(片數 / i.每箱片數);
+
+      return {
+        過程: [
+          { 標籤: '鋪貼面積', 算式: i.長 + ' × ' + i.寬 + ' − ' + i.扣除 + ' = ' + n2(鋪貼面積) + ' m²' },
+          { 標籤: '單片面積（含填縫 ' + i.填縫 + ' mm）', 算式: n2(單片面積 * 10000) + ' cm²' },
+          { 標籤: '片數（含損耗 ' + i.損耗 + '%）', 算式: 片數 + ' 片' }
+        ],
+        值: { 鋪貼面積: 鋪貼面積, 單片面積: 單片面積, 片數: 片數, 箱數: 箱數 },
+        註記: '每箱片數各廠牌不同，一定要向廠商確認後填入。'
+      };
+    }
+  }
+};
+
+function 計算(名稱, 輸入) {
+  if (!公式[名稱]) {
+    return { 過程: [], 值: {}, 註記: '',
+             錯誤: [{ 欄位: null, 等級: '致命', 訊息: '沒有這個公式：' + 名稱 }] };
+  }
+
+  var 驗 = 驗證(名稱, 輸入);
+  var 擋下 = 驗.filter(function (e) { return e.等級 === '錯誤'; });
+  if (擋下.length) {
+    return { 過程: [], 值: {}, 註記: '', 錯誤: 驗 };
+  }
+
+  var r;
+  try {
+    r = 公式[名稱].計算(輸入);
+  } catch (e) {
+    return { 過程: [], 值: {}, 註記: '',
+             錯誤: [{ 欄位: null, 等級: '致命', 訊息: '計算時發生例外：' + e.message }] };
+  }
+
+  /* ── 出口關卡 ──
+     驗證只看輸入是否有限，但有限的數字相乘仍可能溢位：
+     1e308 × 3.305785 已經超過 Number.MAX_VALUE，結果是 Infinity。
+     2026-10-03 自測掃出 11 個這類欄位，入口擋不住，所以出口要再攔一次。
+     這道關卡不需要預先知道哪個欄位會爆，新增公式也自動適用。 */
+  var 非有限 = Object.keys(r.值).filter(function (k) {
+    return typeof r.值[k] === 'number' && !isFinite(r.值[k]);
+  });
+  if (非有限.length) {
+    return { 過程: [], 值: {}, 註記: '', 錯誤: [{
+      欄位: null, 等級: '錯誤',
+      訊息: '計算結果超出可計算範圍（' + 非有限.join('、') +
+            '），請確認輸入單位是否填錯（例如把公分填成了公尺）'
+    }] };
+  }
+
+  r.錯誤 = 驗;   /* 只剩提醒，不擋 */
+  return r;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    換算: 換算, 單位表: 單位表, 換算到: 換算到, 常見誤填: 常見誤填,
+    公式: 公式, 計算: 計算, 驗證: 驗證, 規則: 規則, 插座建議表: 插座建議表
+  };
+}
+</script>
+<script>
+var 設定 = {"公式":"油漆","欄位":["ping","wallH","perim","openArea","rate","coats","loss"],"基準單位":{"ping":"坪","wallH":"m","perim":"m","openArea":"m2"},"結果":{"欄位":"加侖數","單位":"加侖"},"次要結果":"（需求 {公升} L，1 加侖 = 3.785 L）","驗算":[{"標題":"10 坪、淨高 2.8、扣 6 m²、由坪數推估","輸入":{"ping":10,"wallH":2.8,"perim":0,"openArea":6,"rate":9,"coats":2,"loss":10},"預期":{"公升":14.27,"加侖數":4}},{"標題":"實測周長 20 m、淨高 2.8、扣 6 m²","輸入":{"ping":10,"wallH":2.8,"perim":20,"openArea":6,"rate":9,"coats":2,"loss":10},"預期":{"公升":12.22,"加侖數":4}}]};
+
+function $(id) { return document.getElementById(id); }
+function f2(v) { return (Math.round(v * 100) / 100).toFixed(2); }
+
+/* 使用者可以自己選單位；公式只認基準單位，所以讀值時換算回去。
+   這樣公式完全不用知道介面讓人選了什麼，換算只發生在這一個地方。 */
+function 讀單位(k) {
+  var s = $("u_" + k);
+  return (s && s.value) ? s.value : 設定.基準單位[k];
+}
+
+function read() {
+  var o = {};
+  設定.欄位.forEach(function (k) {
+    var v = +$(k).value;
+    var 從 = 讀單位(k);
+    var 到 = 設定.基準單位[k];
+    if (從 && 到 && 從 !== 到 && isFinite(v)) {
+      try { v = 換算到(v, 從, 到); } catch (e) { /* 換算失敗就交給驗證去報 */ }
+    }
+    o[k] = v;
+  });
+  return o;
+}
+
+/* 換單位時把數值一起換算，而不是重新詮釋同一個數字。
+   300 公分切成公尺要變成 3，不是維持 300——後者正是差 100 倍的來源。
+
+   每個欄位另外記一份「基準單位下的值」當作真正的資料，畫面上的數字只是它的呈現。
+   換單位時一律從基準值換算，不從上一個顯示值接著換——
+   否則修整誤差會一路累積，坪→才→m²→坪 繞一圈會變成 9.9999999。 */
+var 目前單位 = {};
+var 基準值 = {};
+
+function 同步基準(k) {
+  var v = +$(k).value;
+  var 從 = 讀單位(k);
+  var 到 = 設定.基準單位[k];
+  if (從 && 到 && 從 !== 到 && isFinite(v)) {
+    try { 基準值[k] = 換算到(v, 從, 到); return; } catch (e) {}
+  }
+  基準值[k] = v;
+}
+
+function 換單位(k) {
+  var 新 = 讀單位(k);
+  var 到 = 設定.基準單位[k];
+  if (新 && 到 && isFinite(基準值[k])) {
+    /* 用有效位數而不是小數位數修整：固定小數位會讓 360 顯示成 359.999997，
+       也會把很小的值（公釐、填縫）直接截成 0。 */
+    try { $(k).value = parseFloat(換算到(基準值[k], 到, 新).toPrecision(8)); } catch (e) {}
+  }
+  目前單位[k] = 新;
+  render();
+}
+
+function 清欄位() {
+  設定.欄位.forEach(function (k) {
+    $(k).className = "";
+    var e = $("err_" + k);
+    if (e) { e.className = "err"; e.textContent = ""; }
+  });
+}
+
+function 標欄位(清單) {
+  清單.forEach(function (e) {
+    if (!e.欄位 || !$(e.欄位)) { return; }
+    if (e.等級 === "錯誤") { $(e.欄位).className = "bad"; }
+    var p = $("err_" + e.欄位);
+    if (!p) { return; }
+    /* 提醒用黃字且不擋計算；錯誤用紅字並擋住結果。
+       一律走 class 不用 inline style——class 無頭測試驗得到，style 驗不到。 */
+    p.className = e.等級 === "提醒" ? "err on warn" : "err on";
+    p.textContent = (e.等級 === "提醒" ? "提醒：" : "") + e.訊息;
+  });
+}
+
+function 空結果(主文, 副文, 壞) {
+  $("steps").innerHTML = "";
+  $("assume").textContent = "";
+  $("out").className = "result none";
+  $("out").textContent = 主文;
+  $("out2").className = 壞 ? "sub-result bad" : "sub-result";
+  $("out2").textContent = 副文;
+}
+
+function render() {
+  var r = 計算(設定.公式, read());
+  var 清單 = r.錯誤 || [];
+  清欄位();
+  標欄位(清單);
+
+  var 致命 = 清單.filter(function (e) { return e.等級 === "致命"; });
+  if (致命.length) {
+    空結果("工具故障", 致命[0].訊息 + "（請回報，不要依賴這次的結果）", true);
+    return;
+  }
+
+  var 錯 = 清單.filter(function (e) { return e.等級 === "錯誤"; });
+  if (錯.length) {
+    /* 絕不留上一次的數字——陳舊數字看起來像新算的，是假自信的來源 */
+    var 有欄位 = 錯.filter(function (e) { return e.欄位; });
+    空結果("—", 有欄位.length ? 有欄位.length + " 個欄位要修正，詳見上方紅字"
+                              : 錯[0].訊息, true);
+    return;
+  }
+
+  $("out").className = "result";
+  $("out2").className = "sub-result";
+  var html = "";
+  r.過程.forEach(function (s) {
+    html += "<tr><td>" + s.標籤 + "</td><td>" + s.算式 + "</td></tr>";
+  });
+  $("steps").innerHTML = html;
+  $("assume").textContent = r.註記 || "";
+  $("out").textContent = r.值[設定.結果.欄位] + " " + 設定.結果.單位;
+  if (設定.次要結果) {
+    $("out2").textContent = 設定.次要結果.replace(/{([^}]+)}/g, function (_, k) {
+      return f2(r.值[k]);
+    });
+  }
+
+  /* 有提醒時結果區也要講一聲。只在欄位旁放小黃字的話，畫面中央仍是一個
+     28px 的大數字，看起來像完全正常的結果——那正是「假自信」的形狀。
+     數字照給（提醒不擋計算），但旁邊要說它可疑。 */
+  var 提 = 清單.filter(function (e) { return e.等級 === "提醒"; });
+  if (提.length) {
+    $("out2").className = "sub-result warn";
+    $("out2").textContent = $("out2").textContent + "　⚠ " + 提.length +
+      " 項提醒，詳見上方黃字";
+  }
+}
+
+function mark(el, 通過, 說明) {
+  el.className = "test " + (通過 ? "pass" : "fail");
+  el.textContent = (通過 ? "通過" : "失敗") + "｜" + 說明;
+}
+
+function 驗算() {
+  設定.驗算.forEach(function (c, n) {
+    var 值 = 計算(設定.公式, c.輸入).值;
+    var 壞掉 = [];
+    Object.keys(c.預期).forEach(function (k) {
+      var 實得 = Math.round(值[k] * 100) / 100;
+      if (實得 !== c.預期[k]) { 壞掉.push(k + " 預期 " + c.預期[k] + "，實得 " + 實得); }
+    });
+    mark($("t" + n), !壞掉.length, c.標題 + (壞掉.length ? "：" + 壞掉.join("；") : ""));
+  });
+  var 畫面 = $("steps").textContent + $("out").textContent + $("out2").textContent;
+  var 壞值 = ["NaN", "Infinity", "undefined", "工具故障", "要修正"];
+  var 有壞值 = 壞值.some(function (k) { return 畫面.indexOf(k) !== -1; });
+  mark($("tRender"), !有壞值 && $("out").textContent !== "—",
+       "畫面渲染檢查：輸入欄有接到計算引擎，預設值算得出正常結果");
+}
+
+設定.欄位.forEach(function (k) { 目前單位[k] = 讀單位(k); 同步基準(k); });
+
+/* 逐個欄位綁，不要靠 el.id 反查——元素不一定有 id 屬性可讀，
+   綁定時就把欄位名閉包進去比較穩。 */
+設定.欄位.forEach(function (k) {
+  var 欄 = $(k);
+  if (欄) {
+    欄.addEventListener("input", function () { 同步基準(k); render(); });
+  }
+  var 選 = $("u_" + k);
+  if (選) {
+    選.addEventListener("change", function () { 換單位(k); });
+  }
+});
+render();
+驗算();
+</script>
+</body>
+</html>

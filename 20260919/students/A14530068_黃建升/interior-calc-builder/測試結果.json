@@ -1,0 +1,133 @@
+{
+  "date": "2026-09-19T07:06:39.295Z",
+  "limitations": [
+    "最小 DOM 不具備真實瀏覽器驗證與排版能力",
+    "瀏覽器工具政策阻擋本機 file URL；未繞過政策"
+  ],
+  "scratch": "C:\\Users\\jason\\AppData\\Local\\Temp\\interior-calc-audit-7WSO84",
+  "total": 24,
+  "passed": 9,
+  "failed": 15,
+  "rows": [
+    {
+      "name": "原有四組公式測試",
+      "pass": true,
+      "detail": "通過｜油漆｜10 坪、淨高 2.8、扣 6 m²、由坪數推估\n  通過｜油漆｜實測周長 20 m、淨高 2.8、扣 6 m²\n  通過｜窗簾｜窗寬 300、窗高 240、2 倍摺、幅寬 280\n  通過｜磁磚｜4×3 m、60×60 磚、填縫 3 mm、損耗 8%、每箱 4 片\n\n全部 4 組通過"
+    },
+    {
+      "name": "原有十一項產出檢查",
+      "pass": true,
+      "detail": "檢查：C:\\Users\\jason\\AppData\\Local\\Temp\\interior-calc-audit-7WSO84\\check-1.html\n\n  通過｜規格1 單檔離線　無外部資源\n  通過｜規格5 手機可用　viewport meta\n  通過｜規格3 假設可改　3 個可修改參數欄位\n  通過｜免責聲明　輸出區保留「不是下單量」\n  通過｜id 未與瀏覽器內建撞名　無撞名\n  通過｜頁面程式可執行　無拋錯\n  通過｜規格2 顯示計算過程　5 列中間值\n  通過｜規格4 驗算區存在　3 項檢查\n  通過｜規格4 驗算全過　全部通過\n  通過｜無未代換佔位符　全部代換完成\n  通過｜畫面無 NaN　結果欄：4 加侖\n\n全部 11 項通過"
+    },
+    {
+      "name": "重新產生與正式 HTML 完全一致",
+      "pass": true,
+      "detail": "已產生：C:\\Users\\jason\\AppData\\Local\\Temp\\interior-calc-audit-7WSO84\\2\\out\\油漆用量計算機.html\n  8306 bytes，2 組驗算，公式「油漆」"
+    },
+    {
+      "name": "非預設輸入：實測周長 30 m",
+      "pass": true,
+      "detail": "6 加侖 / （需求 19.07 L，1 加侖 = 3.785 L）"
+    },
+    {
+      "name": "拒絕錯誤輸入：塗佈率為零",
+      "pass": false,
+      "detail": "Infinity 加侖 / （需求 Infinity L，1 加侖 = 3.785 L）；驗算標示：通過｜畫面渲染檢查：輸入欄有接到計算引擎，畫面結果非 NaN"
+    },
+    {
+      "name": "拒絕錯誤輸入：清空塗佈率",
+      "pass": false,
+      "detail": "Infinity 加侖 / （需求 Infinity L，1 加侖 = 3.785 L）；驗算標示：通過｜畫面渲染檢查：輸入欄有接到計算引擎，畫面結果非 NaN"
+    },
+    {
+      "name": "拒絕錯誤輸入：負損耗率",
+      "pass": false,
+      "detail": "-3 加侖 / （需求 -12.98 L，1 加侖 = 3.785 L）；驗算標示：通過｜畫面渲染檢查：輸入欄有接到計算引擎，畫面結果非 NaN"
+    },
+    {
+      "name": "拒絕錯誤輸入：负坪數",
+      "pass": false,
+      "detail": "NaN 加侖 / （需求 NaN L，1 加侖 = 3.785 L）；驗算標示：通過｜畫面渲染檢查：輸入欄有接到計算引擎，畫面結果非 NaN"
+    },
+    {
+      "name": "拒絕錯誤輸入：小數道數",
+      "pass": false,
+      "detail": "3 加侖 / （需求 10.71 L，1 加侖 = 3.785 L）；驗算標示：通過｜畫面渲染檢查：輸入欄有接到計算引擎，畫面結果非 NaN"
+    },
+    {
+      "name": "設定防呆：危險 id",
+      "pass": true,
+      "detail": "產生失敗：欄位 id「open」與瀏覽器內建物件同名，會讀不到值。換一個名字。"
+    },
+    {
+      "name": "設定防呆：沒有驗算案例",
+      "pass": true,
+      "detail": "產生失敗：至少要有一組驗算案例，沒有驗算的計算機不准產生"
+    },
+    {
+      "name": "設定防呆：缺數字預設值",
+      "pass": true,
+      "detail": "產生失敗：欄位「ping」缺少數字型別的預設值"
+    },
+    {
+      "name": "設定防呆：驗算缺欄位",
+      "pass": true,
+      "detail": "產生失敗：第 1 組驗算案例缺少欄位「ping」"
+    },
+    {
+      "name": "設定防呆：不存在的結果欄位",
+      "pass": true,
+      "detail": "產生失敗：結果欄位「不存在」不在公式輸出裡，可用：地坪m2、周長、牆面積、塗佈需求、公升、加侖數"
+    },
+    {
+      "name": "設定防呆：重複輸入 id",
+      "pass": false,
+      "detail": "產生器接受；後續檢查器 也通過"
+    },
+    {
+      "name": "設定防呆：漏掉公式必需的輸入欄",
+      "pass": false,
+      "detail": "產生器接受；後續檢查器 有擋下"
+    },
+    {
+      "name": "設定防呆：空的預期答案",
+      "pass": false,
+      "detail": "產生器接受；後續檢查器 也通過"
+    },
+    {
+      "name": "設定防呆：結果單位缺失",
+      "pass": false,
+      "detail": "產生器接受；後續檢查器 有擋下"
+    },
+    {
+      "name": "輸出檔名不能越過指定資料夾",
+      "pass": false,
+      "detail": "在測試暫存區成功寫到 out 的上一層；未碰觸正式檔案"
+    },
+    {
+      "name": "設定文字應以純文字顯示",
+      "pass": false,
+      "detail": "標題中的 HTML 被直接插入標記"
+    },
+    {
+      "name": "JSON 內容不可提早關閉 script",
+      "pass": false,
+      "detail": "只檢查產出文字，未開啟測試 HTML 或執行插入內容"
+    },
+    {
+      "name": "檢查器能抓 Infinity 結果",
+      "pass": false,
+      "detail": "檢查：C:\\Users\\jason\\AppData\\Local\\Temp\\interior-calc-audit-7WSO84\\15\\out\\油漆用量計算機.html\n\n  通過｜規格1 單檔離線　無外部資源\n  通過｜規格5 手機可用　viewport meta\n  通過｜規格3 假設可改　3 個可修改參數欄位\n  通過｜免責聲明　輸出區保留「不是下單量」\n  通過｜id 未與瀏覽器內建撞名　無撞名\n  通過｜頁面程式可執行　無拋錯\n  通過｜規格2 顯示計算過程　5 列中間值\n  通過｜規格4 驗算區存在　3 項檢查\n  通過｜規格4 驗算全過　全部通過\n  通過｜無未代換佔位符　全部代換完成\n  通過｜畫面無 NaN　結果欄：Infinity 加侖\n\n全部 11 項通過"
+    },
+    {
+      "name": "檢查器能抓移除 input 事件的頁面",
+      "pass": false,
+      "detail": "檢查：C:\\Users\\jason\\AppData\\Local\\Temp\\interior-calc-audit-7WSO84\\check-16.html\n\n  通過｜規格1 單檔離線　無外部資源\n  通過｜規格5 手機可用　viewport meta\n  通過｜規格3 假設可改　3 個可修改參數欄位\n  通過｜免責聲明　輸出區保留「不是下單量」\n  通過｜id 未與瀏覽器內建撞名　無撞名\n  通過｜頁面程式可執行　無拋錯\n  通過｜規格2 顯示計算過程　5 列中間值\n  通過｜規格4 驗算區存在　3 項檢查\n  通過｜規格4 驗算全過　全部通過\n  通過｜無未代換佔位符　全部代換完成\n  通過｜畫面無 NaN　結果欄：4 加侖\n\n全部 11 項通過"
+    },
+    {
+      "name": "檢查器能抓 CSS 外部資源",
+      "pass": false,
+      "detail": "檢查：C:\\Users\\jason\\AppData\\Local\\Temp\\interior-calc-audit-7WSO84\\check-17.html\n\n  通過｜規格1 單檔離線　無外部資源\n  通過｜規格5 手機可用　viewport meta\n  通過｜規格3 假設可改　3 個可修改參數欄位\n  通過｜免責聲明　輸出區保留「不是下單量」\n  通過｜id 未與瀏覽器內建撞名　無撞名\n  通過｜頁面程式可執行　無拋錯\n  通過｜規格2 顯示計算過程　5 列中間值\n  通過｜規格4 驗算區存在　3 項檢查\n  通過｜規格4 驗算全過　全部通過\n  通過｜無未代換佔位符　全部代換完成\n  通過｜畫面無 NaN　結果欄：4 加侖\n\n全部 11 項通過"
+    }
+  ]
+}

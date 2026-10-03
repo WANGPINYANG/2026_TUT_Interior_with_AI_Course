@@ -1,0 +1,16 @@
+{
+  "repo": "D:/Claude/研究所/課程與作業/2026_TUT_Interior_with_AI_Course",
+  "學號姓名": "A14530068_黃建升",
+  "上游remote": "origin",
+  "我的fork": "fork",
+  "上游網址": "https://github.com/h30190/2026_TUT_Interior_with_AI_Course",
+  "fork網址": "https://github.com/jasonhuang719-lgtm/2026_TUT_Interior_with_AI_Course",
+  "主分支": "main",
+  "分支前綴": "student/A14530068",
+  "上課日期資料夾": ["20260919", "20261003", "20261017", "20261121", "20261219", "20270116"],
+  "大檔案副檔名": [".rvt", ".rfa", ".rte", ".rft", ".skp", ".dwg", ".dxf", ".3dm",
+                   ".max", ".blend", ".ifc", ".mp4", ".mov", ".avi", ".mkv",
+                   ".psd", ".ai", ".indd", ".tif", ".tiff"],
+  "機密檔樣式": [".env", ".key", ".pem", "secrets.json", "credentials"],
+  "單檔上限MB": 5
+}

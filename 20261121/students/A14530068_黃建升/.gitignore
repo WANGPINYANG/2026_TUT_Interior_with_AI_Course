@@ -1,0 +1,72 @@
+# A14530068_黃建升 個人 .gitignore
+# 只管這個資料夾底下的檔案，不影響主 repo 或其他同學。
+
+# ── 大檔案不進 repo（課程規定：原檔留本機）──
+*.rvt
+*.rfa
+*.rte
+*.rft
+*.skp
+*.dwg
+*.dxf
+*.3dm
+*.max
+*.blend
+*.ifc
+*.bak
+*.dwl
+*.dwl2
+
+# ── 影音原檔 ──
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.wav
+
+# ── 大圖原檔（截圖用的 png/jpg 可以進，這些不行）──
+*.psd
+*.ai
+*.indd
+*.tif
+*.tiff
+*.cr2
+*.nef
+
+# ── 業主隱私：平面圖、報價、合約不要傳公開 repo ──
+業主資料/
+未去識別化/
+*_業主*
+
+# ── Node／網頁小工具 ──
+node_modules/
+dist/
+build/
+.cache/
+*.log
+
+# ── 密碼與金鑰（絕對不要進 repo）──
+.env
+.env.*
+*.key
+*.pem
+secrets.json
+
+# ── .NET／Revit 外掛 ──
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# ── 編輯器與 agent 工具 ──
+.vscode/
+.idea/
+.antigravity/
+.opencode/
+
+# ── 系統垃圾檔 ──
+Thumbs.db
+desktop.ini
+.DS_Store
+~$*

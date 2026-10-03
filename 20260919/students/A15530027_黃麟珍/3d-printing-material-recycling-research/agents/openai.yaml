@@ -1,0 +1,4 @@
+interface:
+  display_name: "3D列印材料回收與再生研究"
+  short_description: "蒐集3D列印廢料再生資料，建立證據矩陣並評估性能衰減與可行性"
+  default_prompt: "使用 $3d-printing-material-recycling-research 蒐集 PLA 列印廢料再製線材的研究，整理性能變化與可行流程。"
