@@ -1,0 +1,14 @@
+{
+  "room": { "name": "客廳", "width": 450, "depth": 380 },
+  "openings": [
+    { "type": "door",   "wall": "W", "offset": 20,  "width": 100, "kind": "entry" },
+    { "type": "door",   "wall": "N", "offset": 330, "width": 80,  "kind": "bathroom" },
+    { "type": "window", "wall": "E", "offset": 120, "width": 180 }
+  ],
+  "items": [
+    { "type": "sofa" },
+    { "type": "coffee_table" },
+    { "type": "tv_cabinet" },
+    { "type": "bookshelf", "count": 2 }
+  ]
+}
