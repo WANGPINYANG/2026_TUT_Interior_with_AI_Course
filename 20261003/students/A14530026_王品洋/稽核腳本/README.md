@@ -7,6 +7,8 @@
 | `exact.py` + `ex_run.js` | 三個公式各 10 萬組隨機輸入，與「精確分數」標準答案比對（找浮點進位誤差） |
 | `genfuzz.js` | 對「計算機產生器」餵 300 個隨機壞設定檔（輸出寫暫存資料夾），統計崩潰、注入、接受壞設定 |
 | `mutate.js` / `mutate2.js` | 變異測試：在暫存複本上一次弄壞一處，看檢查器（`mutate.js`）與整套測試（`mutate2.js`）抓不抓得到 |
+| `cs_attack.js` / `cs_fix.js` | 攻擊 `course-submit`：在暫存資料夾建假的上游與 fork（本機空倉庫），逐項測試檢查器與交件流程 |
+| `sua_attack.js` | 攻擊 `skill-usage-audit`：假逐字稿與假 skill 資料夾，只在記憶體改路徑 |
 | `prop.js` | 20 萬組隨機輸入：單調性、輸入是否被改動、同輸入兩次結果是否相同 |
 
 執行（需 Node 與 uv；路徑請改成自己的）：
