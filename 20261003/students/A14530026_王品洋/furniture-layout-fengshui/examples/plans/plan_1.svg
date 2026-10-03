@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 715" width="700" height="715" font-family="Microsoft JhengHei, PingFang TC, Noto Sans TC, sans-serif">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="70" y="28" font-size="18" font-weight="bold" fill="#222">主臥室｜方案 1</text>
+<text x="70" y="50" font-size="13" fill="#555">總分 99.2 ｜ 人體工學 100 ｜ 風水 98</text>
+<rect x="70.0" y="70.0" width="560.0" height="513.3" fill="#faf7f2" stroke="#333" stroke-width="6"/>
+<text x="350.0" y="605.3" font-size="12" fill="#666" text-anchor="middle">360 cm</text>
+<text x="52.0" y="326.7" font-size="12" fill="#666" text-anchor="middle" transform="rotate(-90 52.0 326.7)">330 cm</text>
+<path d="M665.0,75.0 l-8,22 l8,-6 l8,6 z" fill="#333"/><text x="665.0" y="111.0" font-size="12" text-anchor="middle" fill="#333">N</text>
+<rect x="70.0" y="132.2" width="560.0" height="46.7" fill="#b0503f" fill-opacity="0.08" stroke="#b0503f" stroke-dasharray="6 4"/>
+<text x="73.0" y="144.2" font-size="11" fill="#b0503f">樑</text>
+<rect x="311.1" y="290.9" width="236.4" height="292.4" rx="3" fill="#c9d8f0" stroke="#555" stroke-width="1.2"/>
+<line x1="311.1" y1="290.9" x2="547.6" y2="290.9" stroke="#333" stroke-width="3"/>
+<rect x="314.1" y="547.4" width="230.4" height="32.9" fill="#ffffff" stroke="#8aa" rx="4"/>
+<text x="429.3" y="441.1" font-size="12" text-anchor="middle" fill="#222">雙人床</text>
+<rect x="536.7" y="77.8" width="93.3" height="186.7" rx="3" fill="#d9c3a5" stroke="#555" stroke-width="1.2"/>
+<line x1="536.7" y1="77.8" x2="536.7" y2="264.4" stroke="#333" stroke-width="3"/>
+<text x="583.3" y="175.1" font-size="12" text-anchor="middle" fill="#222">衣櫃</text>
+<rect x="70.0" y="155.6" width="93.3" height="186.7" rx="3" fill="#cfe3c4" stroke="#555" stroke-width="1.2"/>
+<line x1="163.3" y1="155.6" x2="163.3" y2="342.2" stroke="#333" stroke-width="3"/>
+<text x="116.7" y="252.9" font-size="12" text-anchor="middle" fill="#222">書桌</text>
+<rect x="241.1" y="521.1" width="70.0" height="62.2" rx="3" fill="#e8dcc8" stroke="#555" stroke-width="1.2"/>
+<line x1="241.1" y1="521.1" x2="311.1" y2="521.1" stroke="#333" stroke-width="3"/>
+<text x="276.1" y="556.2" font-size="12" text-anchor="middle" fill="#222">床頭櫃</text>
+<rect x="547.6" y="521.1" width="70.0" height="62.2" rx="3" fill="#e8dcc8" stroke="#555" stroke-width="1.2"/>
+<line x1="547.6" y1="521.1" x2="617.6" y2="521.1" stroke="#333" stroke-width="3"/>
+<text x="582.6" y="556.2" font-size="12" text-anchor="middle" fill="#222">床頭櫃</text>
+<line x1="101.1" y1="583.3" x2="241.1" y2="583.3" stroke="#faf7f2" stroke-width="8"/>
+<line x1="101.1" y1="583.3" x2="101.1" y2="443.3" stroke="#c0392b" stroke-width="2"/>
+<polyline points="241.1,583.3 239.9,565.1 236.3,547.1 230.5,529.8 222.4,513.3 212.2,498.1 200.1,484.3 186.3,472.3 171.1,462.1 154.7,454.0 137.3,448.1 119.4,444.5 101.1,443.3" fill="none" stroke="#c0392b" stroke-dasharray="3 3"/>
+<text x="171.1" y="601.3" font-size="11" fill="#c0392b" text-anchor="middle">門</text>
+<line x1="241.1" y1="70.0" x2="474.4" y2="70.0" stroke="#faf7f2" stroke-width="8"/>
+<line x1="241.1" y1="70.0" x2="474.4" y2="70.0" stroke="#3a8fc7" stroke-width="5"/>
+<circle cx="116.7" cy="226.9" r="10" fill="#7f8c8d" stroke="#fff" stroke-width="2"/><text x="116.7" y="230.9" font-size="11" fill="#fff" text-anchor="middle" font-weight="bold">1</text>
+<text x="70" y="633.3" font-size="14" font-weight="bold" fill="#222">檢查結果</text>
+<text x="70" y="655.3" font-size="12" fill="#333">1. [風水・低] 書桌面壁，視野受限</text>
+</svg>

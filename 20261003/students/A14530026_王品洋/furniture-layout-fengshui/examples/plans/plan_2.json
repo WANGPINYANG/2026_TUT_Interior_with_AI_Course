@@ -1,0 +1,63 @@
+{
+  "room": {
+    "name": "主臥室",
+    "width": 360,
+    "depth": 330
+  },
+  "openings": [
+    {
+      "type": "door",
+      "wall": "S",
+      "offset": 20,
+      "width": 90
+    },
+    {
+      "type": "window",
+      "wall": "N",
+      "offset": 110,
+      "width": 150
+    }
+  ],
+  "beams": [
+    {
+      "x": 0,
+      "y": 40,
+      "w": 360,
+      "d": 30
+    }
+  ],
+  "furniture": [
+    {
+      "type": "bed_double",
+      "x": 172.0,
+      "y": 130,
+      "facing": "W",
+      "width": 152.0,
+      "depth": 188.0
+    },
+    {
+      "type": "wardrobe",
+      "x": 300.0,
+      "y": 0,
+      "facing": "W",
+      "width": 120.0,
+      "depth": 60.0
+    },
+    {
+      "type": "desk",
+      "x": 0,
+      "y": 45,
+      "facing": "E",
+      "width": 120.0,
+      "depth": 60.0
+    },
+    {
+      "type": "nightstand",
+      "x": 320.0,
+      "y": 282.0,
+      "facing": "W",
+      "width": 45.0,
+      "depth": 40.0
+    }
+  ]
+}
