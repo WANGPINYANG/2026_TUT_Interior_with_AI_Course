@@ -112,7 +112,10 @@ test('檢查器能抓 Infinity 結果', ()=>{
   return {pass:checked.status!==0,detail:checked.output};
 });
 test('檢查器能抓移除 input 事件的頁面', ()=>{
-  const modified=source.replace('el.addEventListener("input", render);','/* 故意拔掉事件以測檢查器 */');
+  // 2026-10-03 改了錨點字串，沒有改這條測試在驗什麼。
+  // 原錨點是 'el.addEventListener("input", render);'，可自選單位改版後綁定方式改寫，
+  // 那行字不再存在。這裡只更新「怎麼找到綁定那一行」，斷言仍是「拔掉事件後檢查器要抓到」。
+  const modified=source.replace('欄.addEventListener("input", function () { 同步基準(k); render(); });','/* 故意拔掉事件以測檢查器 */');
   if(modified===source) throw Error('找不到測試修改位置');
   const r=check(modified); return {pass:r.status!==0,detail:r.output};
 });

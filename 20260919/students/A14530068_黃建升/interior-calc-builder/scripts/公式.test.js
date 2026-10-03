@@ -39,7 +39,10 @@ console.log('── 算得對不對 ──');
 案例.forEach(function (c) {
   var r = 計算(c.公式, c.輸入);
   var 壞掉 = [];
-  if (r.錯誤 && r.錯誤.length) { 壞掉.push('不該被驗證擋下：' + r.錯誤.join('、')); }
+  var 被擋 = (r.錯誤 || []).filter(function (e) { return e.等級 !== '提醒'; });
+  if (被擋.length) {
+    壞掉.push('不該被擋下：' + 被擋.map(function (e) { return e.訊息; }).join('、'));
+  }
   Object.keys(c.預期).forEach(function (k) {
     var 實得 = Math.round(r.值[k] * 100) / 100;
     if (實得 !== c.預期[k]) { 壞掉.push(k + ' 預期 ' + c.預期[k] + '，實得 ' + 實得); }
@@ -79,15 +82,19 @@ console.log('');
 console.log('── 錯誤輸入擋不擋得住 ──');
 錯誤案例.forEach(function (c) {
   var r = 計算('油漆', c.輸入);
-  var 有擋 = r.錯誤 && r.錯誤.length > 0;
-  var 訊息對 = 有擋 && r.錯誤.some(function (s) { return s.indexOf(c.應含) !== -1; });
+  var 擋下 = (r.錯誤 || []).filter(function (e) { return e.等級 === '錯誤'; });
+  var 有擋 = 擋下.length > 0;
+  var 訊息對 = 擋下.some(function (e) { return e.訊息.indexOf(c.應含) !== -1; });
+  var 有欄位 = 擋下.every(function (e) { return e.欄位 !== undefined; });
   var 值是空的 = Object.keys(r.值).length === 0;
-  if (有擋 && 訊息對 && 值是空的) {
+  if (有擋 && 訊息對 && 值是空的 && 有欄位) {
     console.log('  通過｜' + c.名稱);
   } else {
     失敗++;
     console.log('  失敗｜' + c.名稱 +
-                (有擋 ? (訊息對 ? '　但值沒清空' : '　訊息是「' + r.錯誤.join('、') + '」') : '　完全沒擋'));
+                (有擋 ? (訊息對 ? (值是空的 ? '　錯誤物件缺欄位' : '　但值沒清空')
+                                : '　訊息是「' + 擋下.map(function (e) { return e.訊息; }).join('、') + '」')
+                      : '　完全沒擋'));
   }
 });
 
@@ -103,7 +110,9 @@ console.log('── 其他公式 ──');
     輸入: { 長: 4, 寬: 3, 扣除: 0, 磚長: 0, 磚寬: 60, 填縫: 3, 損耗: 8, 每箱片數: 4 }, 應含: '磚長' }
 ].forEach(function (c) {
   var r = 計算(c.公式, c.輸入);
-  var 過 = r.錯誤 && r.錯誤.some(function (s) { return s.indexOf(c.應含) !== -1; });
+  var 過 = (r.錯誤 || []).some(function (e) {
+    return e.等級 === '錯誤' && e.訊息.indexOf(c.應含) !== -1;
+  });
   if (!過) 失敗++;
   console.log('  ' + (過 ? '通過' : '失敗') + '｜' + c.名稱);
 });
