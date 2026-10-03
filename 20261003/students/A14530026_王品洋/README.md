@@ -50,4 +50,4 @@
 ## 修正黃建升對我的稽核（12 項）
 
 - 我先把他報告的 12 項逐項用原始壞輸入重跑，全部屬實，再修。修法與取捨寫在 `稽核報告.md` 最後一節。
-- `furniture-layout-fengshui/tests/audit_regression_test.py`：54 項回歸測試（含不能修過頭的反例），全過。
+- `furniture-layout-fengshui/tests/audit_regression_test.py`：56 項回歸測試（含不能修過頭的反例），全過。

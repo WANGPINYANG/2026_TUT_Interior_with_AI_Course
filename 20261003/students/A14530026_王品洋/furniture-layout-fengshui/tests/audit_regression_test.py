@@ -61,11 +61,25 @@ def sealed(y, gap=0):
             "furniture": furn}
 
 
-print("\n[#1] 整排家具把門口封死要報 UNREACHABLE（他：y=0/20/36/40/50 漏報）")
+BLOCK = ("ENTRY_BLOCKED", "NO_ACCESS")
+
+
+def is_blocked(r):
+    return any(c in BLOCK for c in codes(r)) and r["score"] == 0.0 and r["feasible"] is False
+
+
+print("\n[#1] 整排家具把門口封死 → 判定不可用，總分 0（他：y=0/20/36/40/50 漏報）")
 for y in (0, 20, 36, 40, 50, 60, 80, 100):
-    check("書櫃牆 y={} 封死".format(y), "UNREACHABLE" in codes(ev(sealed(y))))
-check("反例：書櫃牆留 80cm 缺口 → 不報 UNREACHABLE", "UNREACHABLE" not in codes(ev(sealed(40, gap=80))))
-check("反例：沒有擋門 → 不報 UNREACHABLE", "UNREACHABLE" not in codes(ev({"room": {"width": 500, "depth": 600},
+    r = ev(sealed(y))
+    check("書櫃牆 y={} 封死 → {} 總分 {}".format(y, [c for c in codes(r) if c in BLOCK], r["score"]), is_blocked(r))
+check("反例：書櫃牆留 80cm 缺口 → 可通行，不是 0 分", not is_blocked(ev(sealed(40, gap=80))) and ev(sealed(40, gap=80))["score"] > 0)
+pocket = {"room": {"width": 300, "depth": 300}, "openings": [{"type": "door", "wall": "S", "offset": 100, "width": 90, "swing": "sliding"}],
+          "furniture": [{"type": "desk", "x": 0, "y": 0, "facing": "S"}, {"type": "tv_cabinet", "x": 125, "y": 0, "facing": "E"},
+                        {"type": "tv_cabinet", "x": 0, "y": 140, "facing": "S"}]}
+rp = ev(pocket)
+check("反例：只有書桌被圍在角落（房間大部分可走）→ 報 UNREACHABLE、不是 0 分",
+      "UNREACHABLE" in codes(rp) and rp["score"] > 0 and not is_blocked(rp))
+check("反例：沒有擋門 → 可通行，不是 0 分", not is_blocked(ev({"room": {"width": 500, "depth": 600},
       "openings": [{"type": "door", "wall": "N", "offset": 200, "width": 90}],
       "furniture": [{"type": "bookshelf", "x": 10, "y": 300, "facing": "S"}]})))
 for wall in "NSEW":     # 四面牆的門
@@ -80,7 +94,7 @@ for wall in "NSEW":     # 四面牆的門
         d["furniture"] = [{"type": "bookshelf", "x": far, "y": 1 + i * 166, "facing": "E", "width": 166} for i in range(3)]
     else:
         d["furniture"] = [{"type": "bookshelf", "x": 500 - far - 35, "y": 1 + i * 166, "facing": "W", "width": 166} for i in range(3)]
-    check("{}牆的門被封死也要報".format(wall), "UNREACHABLE" in codes(ev(d)))
+    check("{}牆的門被封死 → 0 分".format(wall), is_blocked(ev(d)))
 
 
 # ---------------------------------------------------------------- #2 房外不可行
@@ -134,6 +148,19 @@ check("反例：衣櫃只擋一小部分 → 仍報", "MIRROR_FACES_BED" in code
     ev(mir({"type": "wardrobe", "x": 120, "y": 250, "facing": "N", "width": 20}))))
 check("反例：矮的茶几擋住不算遮擋 → 仍報", "MIRROR_FACES_BED" in codes(
     ev(mir({"type": "coffee_table", "x": 120, "y": 250, "facing": "N", "width": 120}))))
+
+def real_room(block):
+    d = copy.deepcopy(base)      # 有門、有窗、有樑的真實房間
+    d["furniture"].append({"type": "mirror", "x": 157, "y": 320, "facing": "N"})
+    if block:
+        d["furniture"].append({"type": "wardrobe", "x": 120, "y": 250, "facing": "N", "width": 120})
+    return d
+
+
+r_open, r_blk = ev(real_room(False)), ev(real_room(True))
+check("真實房間：擋住鏡子只少一項扣分（風水 {}→{}），總分 {}→{}，不會變 100".format(
+    r_open["fengshui"], r_blk["fengshui"], r_open["score"], r_blk["score"]),
+    r_blk["fengshui"] == r_open["fengshui"] + 12 and r_blk["score"] < 100)
 
 # ---------------------------------------------------------------- #5 輸出路徑
 print("\n[#5] --svg / --out-dir 不能含 ..")

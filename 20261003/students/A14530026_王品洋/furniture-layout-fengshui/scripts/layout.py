@@ -456,6 +456,13 @@ def check_paths(L):
                 if a0 - grid <= along <= b0 + grid and R <= inward <= R + layer:
                     seen[i][j] = True
                     q.append((i, j))
+    if not q:
+        # 門口內側第一層一格空位都沒有：人進不了房間。這比「某件家具走不到」嚴重得多，
+        # 只回報這一項（evaluate 會把總分直接判成 0），不再列一串 UNREACHABLE
+        dr0 = doors[0]
+        return [issue("人體工學", "error", "ENTRY_BLOCKED",
+                      "{}牆的房門被家具封死，人進不了房間（門口內側 50cm 內沒有可站立的空位）".format(WALL_ZH[dr0["wall"]]),
+                      "把擋在門口的家具移開，門口內側至少留 50cm 寬的通道", opening_center(dr0, L["room"]))]
     while q:
         i, j = q.popleft()
         for di, dj in ((1, 0), (-1, 0), (0, 1), (0, -1)):
@@ -470,6 +477,7 @@ def check_paths(L):
         return any(seen[i][j] for i in range(i1, i2 + 1) for j in range(j1, j2 + 1))
 
     out = []
+
     for it in L["items"]:
         r = rect(it)
         if it["type"] in BEDS:
@@ -480,10 +488,21 @@ def check_paths(L):
             zones = [zone(r, it["facing"], max(it["req"], 60))]
         else:
             continue
+
         if not any(reachable(z) for z in zones):
             out.append(issue("人體工學", "error", "UNREACHABLE",
                              "從房門走不到 {} 的使用區（通道小於 50cm）".format(it["name"]),
                              "整理出一條 50cm 以上、從門口到該家具前方的走道", center(zones[0])))
+    free_cells = sum(1 for i in range(nx) for j in range(ny) if not blocked[i][j])
+    reach_cells = sum(1 for i in range(nx) for j in range(ny) if seen[i][j])
+    if out and free_cells * grid * grid >= 5000 and reach_cells < 0.15 * free_cells:
+        # 人站得進門口，但房間裡可站立的空間有 85% 以上走不到（例如整排家具把房間攔腰切斷）：
+        # 這間房等於不能用，與門口被封死同等級。只回報這一項，evaluate 會把總分判成 0
+        dr0 = doors[0]
+        return [issue("人體工學", "error", "NO_ACCESS",
+                      "房門進得去，但房間裡可站立的空間只有 {:.0f}% 走得到，其餘被家具隔斷，這間房等於不能用".format(
+                          100.0 * reach_cells / max(free_cells, 1)),
+                      "在門口到房間深處之間整理出一條 50cm 以上的主要走道", opening_center(dr0, L["room"]))]
     return out
 
 
@@ -627,8 +646,11 @@ def evaluate(L, with_path=True):
     ergo = max(0, 100 - sum(PENALTY[i["level"]] for i in issues if i["category"] == "人體工學"))
     fs = max(0, 100 - sum(PENALTY[i["level"]] for i in issues if i["category"] == "風水"))
     score = round(ergo * 0.6 + fs * 0.4, 1)
-    feasible = not any(i["code"] == "OUT_OF_ROOM" for i in issues)
-    if not feasible:
+    entry_blocked = any(i["code"] in ("ENTRY_BLOCKED", "NO_ACCESS") for i in issues)
+    feasible = not entry_blocked and not any(i["code"] == "OUT_OF_ROOM" for i in issues)
+    if entry_blocked:
+        score = 0.0      # 人進不去的房間，其他規則都沒有意義
+    elif not feasible:
         # 有家具在房間外＝配置不可行。風水規則在家具移出房間後反而不觸發，會讓總分更高，
         # 所以不可行的配置總分封頂，不能和可行的方案比較
         score = min(score, INFEASIBLE_CAP)
@@ -932,7 +954,9 @@ def print_report(L, res, title):
         print("  {:<6} 位置({:.0f},{:.0f}) 尺寸 {:.0f}×{:.0f} 正面朝{}".format(
             it["name"], it["x"], it["y"], it["w"], it["d"], WALL_ZH[it["facing"]]))
     print("-" * 50)
-    if res.get("feasible") is False:
+    if any(i["code"] in ("ENTRY_BLOCKED", "NO_ACCESS") for i in res["issues"]):
+        print("注意：人進不了房間，或房間裡所有家具都走不到，這個配置不可行，總分為 0")
+    elif res.get("feasible") is False:
         print("注意：有家具在房間外，這個配置不可行，總分已封頂為 {:g}，不能與可行方案比較".format(INFEASIBLE_CAP))
     for note in res.get("notes", []):
         print("備註：{}".format(note))
